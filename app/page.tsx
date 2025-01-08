@@ -16,21 +16,21 @@ export default function Home() {
         WebApp.ready();
         setInitData(WebApp.initData);
         setUserId(WebApp.initDataUnsafe.user?.id.toString() || '');
-        setUsername(WebApp.initDataUnsafe.user?.username || 'Unknown'); // استخراج اسم المستخدم
+        setUsername(WebApp.initDataUnsafe.user?.username || 'Unknown');
         setStartParam(WebApp.initDataUnsafe.start_param || '');
       }
     };
 
     initWebApp();
-  }, [])
+  }, []);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Telegram ass</h1>
+      <h1 className="text-4xl font-bold mb-8">Telegram Referral Demo</h1>
       {username && (
-        <p className="text-lg mb-4">Welcome, @{username}!</p> {/* عرض اسم المستخدم */}
+        <p className="text-lg mb-4">Welcome, @{username}!</p>
       )}
       <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
     </main>
-  )
-    }
+  );
+      }
