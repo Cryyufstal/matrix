@@ -46,21 +46,32 @@ export default function Home() {
   };
 
   const updatePointsInDB = async (username: string, newPoints: number) => {
-    const db = await openDatabase();
-    const tx = db.transaction("users", "readwrite");
-    const store = tx.objectStore("users");
-    const user = await store.get(username);
+  const db = await openDatabase();
+  const tx = db.transaction("users", "readwrite");
+  const store = tx.objectStore("users");
+
+  // الحصول على المستخدم
+  const request = store.get(username);
+  request.onsuccess = () => {
+    const user = request.result;
 
     if (user) {
+      // تحديث النقاط للمستخدم الحالي
       user.points = newPoints;
-      await store.put(user);
+      store.put(user);
     } else {
-      await store.add({ username, points: newPoints });
+      // إضافة مستخدم جديد إذا لم يكن موجودًا
+      store.add({ username, points: newPoints });
     }
-
-    await tx.done;
-    db.close();
   };
+
+  request.onerror = () => {
+    console.error("Error accessing user data in IndexedDB");
+  };
+
+  await tx.done;
+  db.close();
+};
 
   const openDatabase = async () => {
     if (!("indexedDB" in window)) {
