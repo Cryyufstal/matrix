@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react'
-import { initUtils } from '@telegram-apps/sdk'
+import { useState, useEffect } from 'react';
+import { initUtils } from '@telegram-apps/sdk';
 
 interface ReferralSystemProps {
-  initData: string
-  userId: string
-  startParam: string
+  initData: string;
+  userId: string;
+  startParam: string;
+  username?: string; // Optional username prop for personalized greetings
 }
 
-const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, startParam }) => {
-  const [referrals, setReferrals] = useState<string[]>([])
-  const [referrer, setReferrer] = useState<string | null>(null)
-  const INVITE_URL = "https://t.me/referral_showcase_bot/start"
+const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, startParam, username }) => {
+  const [referrals, setReferrals] = useState<string[]>([]);
+  const [referrer, setReferrer] = useState<string | null>(null);
+  const INVITE_URL = 'https://t.me/referral_showcase_bot/start';
 
   useEffect(() => {
     const checkReferral = async () => {
@@ -26,7 +27,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           console.error('Error saving referral:', error);
         }
       }
-    }
+    };
 
     const fetchReferrals = async () => {
       if (userId) {
@@ -34,37 +35,39 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           const response = await fetch(`/api/referrals?userId=${userId}`);
           if (!response.ok) throw new Error('Failed to fetch referrals');
           const data = await response.json();
-          setReferrals(data.referrals);
-          setReferrer(data.referrer);
+          setReferrals(data.referrals || []);
+          setReferrer(data.referrer || null);
         } catch (error) {
           console.error('Error fetching referrals:', error);
         }
       }
-    }
+    };
 
     checkReferral();
     fetchReferrals();
-  }, [userId, startParam])
+  }, [userId, startParam]);
 
   const handleInviteFriend = () => {
-    const utils = initUtils()
-    const inviteLink = `${INVITE_URL}?startapp=${userId}`
-    const shareText = `Join me on this awesome Telegram mini app!`
-    const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`
-    utils.openTelegramLink(fullUrl)
-  }
+    const utils = initUtils();
+    const inviteLink = `${INVITE_URL}?startapp=${userId}`;
+    const shareText = `Join me on this awesome Telegram mini app!`;
+    const fullUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
+    utils.openTelegramLink(fullUrl);
+  };
 
   const handleCopyLink = () => {
-    const inviteLink = `${INVITE_URL}?startapp=${userId}`
-    navigator.clipboard.writeText(inviteLink)
-    alert('Invite link copied to clipboard!')
-  }
+    const inviteLink = `${INVITE_URL}?startapp=${userId}`;
+    navigator.clipboard.writeText(inviteLink);
+    alert('Invite link copied to clipboard!');
+  };
 
   return (
     <div className="w-full max-w-md">
-      {referrer && (
-        <p className="text-green-500 mb-4">You were referred by user {referrer}</p>
-      )}
+      <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '20px' }}>
+        Welcome, {username || 'Guest'}
+      </h1>
+      {referrer && <p className="text-green-500 mb-4">You were referred by user {referrer}</p>}
+
       <div className="flex flex-col space-y-4">
         <button
           onClick={handleInviteFriend}
@@ -79,6 +82,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
           Copy Invite Link
         </button>
       </div>
+
       {referrals.length > 0 && (
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Your Referrals</h2>
@@ -92,7 +96,7 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, start
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ReferralSystem
+export default ReferralSystem;
