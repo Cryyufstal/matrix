@@ -15,25 +15,24 @@ interface UserData {
   is_premium?: boolean;
 }
 
-export default function Home() {
-  const [initData, setInitData] = useState<string>('');
-  const [userId, setUserId] = useState<string>('');
-  const [startParam, setStartParam] = useState<string>('');
-  const [username, setUsername] = useState<string | undefined>(undefined);
+useEffect(() => {
+  const initWebApp = async () => {
+    if (typeof window !== 'undefined') {
+      const WebApp = (await import('@twa-dev/sdk')).default;
+      WebApp.ready();
+      const user = WebApp.initDataUnsafe.user;
 
-  useEffect(() => {
-    const initWebApp = async () => {
-      if (typeof window !== 'undefined') {
-        const WebApp = (await import('@twa-dev/sdk')).default;
-        WebApp.ready();
-        const user = WebApp.initDataUnsafe.user;
+      console.log(user?.username); // تحقق من قيمة اسم المستخدم
+      setInitData(WebApp.initData);
+      setUserId(user?.id.toString() || '');
+      setStartParam(WebApp.initDataUnsafe.start_param || '');
+      setUsername(user?.username);
+    }
+  };
 
-        setInitData(WebApp.initData);
-        setUserId(user?.id.toString() || '');
-        setStartParam(WebApp.initDataUnsafe.start_param || '');
-        setUsername(user?.username);
-      }
-    };
+  initWebApp();
+}, []);
+
 
     initWebApp();
   }, []);
