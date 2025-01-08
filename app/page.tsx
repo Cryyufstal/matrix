@@ -1,19 +1,29 @@
 'use client';
 
 import ReferralSystem from '@/components/ReferralSystem';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+
+interface Task {
+  id: number;
+  name: string;
+  url: string;
+  completed: boolean;
+}
+
+const tasksData: Task[] = [
+  { id: 1, name: 'Visit Example Site', url: 'https://example.com', completed: false },
+  { id: 2, name: 'Check Another Site', url: 'https://example.org', completed: false },
+];
 
 export default function Home() {
   const [initData, setInitData] = useState('');
   const [userId, setUserId] = useState('');
   const [username, setUsername] = useState('');
   const [startParam, setStartParam] = useState('');
+  const [tasks, setTasks] = useState<Task[]>(tasksData);
   const [points, setPoints] = useState<number>(0);
-  const [tasks, setTasks] = useState([
-    { id: 1, title: "Visit Google", link: "https://google.com", status: "pending" },
-    { id: 2, title: "Visit YouTube", link: "https://youtube.com", status: "pending" },
-  ]);
 
+  // استرداد بيانات Telegram Web App
   useEffect(() => {
     const initWebApp = async () => {
       if (typeof window !== 'undefined') {
@@ -23,129 +33,126 @@ export default function Home() {
         setUserId(WebApp.initDataUnsafe.user?.id.toString() || '');
         setUsername(WebApp.initDataUnsafe.user?.username || 'Unknown');
         setStartParam(WebApp.initDataUnsafe.start_param || '');
-
-        // إذا كان المستخدم مدعوًا، أضف 300 نقطة
-        if (WebApp.initDataUnsafe.start_param) {
-          setPoints((prev) => prev + 300);
-          await updatePointsInDB(WebApp.initDataUnsafe.user?.username || '', points + 300);
-        }
       }
     };
 
     initWebApp();
   }, []);
 
-  const handleCheckTask = async (taskId: number) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId ? { ...task, status: "completed" } : task
-      )
-    );
-    setPoints((prev) => prev + 100);
-    await updatePointsInDB(username, points + 100);
-  };
+  // استرداد النقاط من قاعدة البيانات عند بدء التطبيق
+  useEffect(() => {
+    const fetchPoints = async () => {
+      const db = await openDatabase();
+      const tx = db.transaction('users', 'readonly');
+      const store = tx.objectStore('users');
+      const request = store.get(username);
 
-const updatePointsInDB = async (username: string, newPoints: number) => {
-  const db = await openDatabase();
-  const tx = db.transaction("users", "readwrite");
-  const store = tx.objectStore("users");
+      request.onsuccess = () => {
+        const user = request.result;
+        if (user) {
+          setPoints(user.points || 0);
+        }
+      };
+    };
 
-  return new Promise<void>((resolve, reject) => {
+    if (username) fetchPoints();
+  }, [username]);
+
+  // تحديث النقاط في قاعدة البيانات
+  const updatePointsInDB = async (newPoints: number) => {
+    const db = await openDatabase();
+    const tx = db.transaction('users', 'readwrite');
+    const store = tx.objectStore('users');
+
     const request = store.get(username);
 
     request.onsuccess = () => {
       const user = request.result;
 
       if (user) {
-        // تحديث النقاط للمستخدم الحالي
         user.points = newPoints;
         store.put(user);
       } else {
-        // إضافة مستخدم جديد إذا لم يكن موجودًا
         store.add({ username, points: newPoints });
       }
     };
+  };
 
-    request.onerror = () => {
-      console.error("Error accessing user data in IndexedDB");
-      reject(request.error);
-    };
+  // التعامل مع الضغط على زر Start
+  const handleStart = (taskId: number) => {
+    const updatedTasks = tasks.map((task) =>
+      task.id === taskId ? { ...task, completed: false } : task
+    );
+    setTasks(updatedTasks);
+  };
 
-    tx.oncomplete = () => {
-      db.close();
-      resolve();
-    };
+  // التعامل مع الضغط على زر Check
+  const handleCheck = async (taskId: number) => {
+    const updatedTasks = tasks.map((task) =>
+      task.id === taskId ? { ...task, completed: true } : task
+    );
+    setTasks(updatedTasks);
 
-    tx.onerror = () => {
-      console.error("Transaction failed");
-      db.close();
-      reject(tx.error);
-    };
-  });
-};
-
-  const openDatabase = async () => {
-    if (!("indexedDB" in window)) {
-      throw new Error("This browser doesn't support IndexedDB");
-    }
-
-    return new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open("TaskAppDB", 1);
-
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains("users")) {
-          db.createObjectStore("users", { keyPath: "username" });
-        }
-      };
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    const newPoints = points + 100;
+    setPoints(newPoints);
+    await updatePointsInDB(newPoints);
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Telegram Referral Demo</h1>
-      {username && <p className="text-lg mb-4">Welcome, @{username}!</p>}
-      <p className="text-lg mb-4">Your Points: {points}</p>
+    <main className="flex flex-col items-center justify-center p-6">
+      <h1 className="text-4xl font-bold mb-6">Welcome to the App</h1>
+      {username && <p className="text-lg mb-4">Hello, @{username}!</p>}
+
+      {/* عرض نظام الإحالة */}
+      <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
 
       {/* عرض قائمة المهام */}
-      <div className="task-container w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Tasks</h2>
-        <ul>
+      <div className="mt-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-4">Your Tasks</h2>
+        <h3 className="text-lg mb-4">Your Points: {points}</h3>
+        <ul className="space-y-4">
           {tasks.map((task) => (
-            <li key={task.id} className="mb-4">
-              <div className="flex items-center justify-between">
-                <span>{task.title}</span>
-                {task.status === "pending" ? (
-                  <>
-                    <a
-                      href={task.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-primary"
-                    >
-                      Start
-                    </a>
-                    <button
-                      onClick={() => handleCheckTask(task.id)}
-                      className="btn btn-secondary"
-                    >
-                      Check
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-green-500">Completed</span>
-                )}
-              </div>
+            <li key={task.id} className="flex items-center justify-between p-4 bg-gray-100 rounded">
+              <span>{task.name}</span>
+              {!task.completed ? (
+                <>
+                  <button
+                    onClick={() => window.open(task.url, '_blank')}
+                    className="bg-blue-500 text-white py-1 px-3 rounded"
+                  >
+                    Start
+                  </button>
+                  <button
+                    onClick={() => handleCheck(task.id)}
+                    className="bg-green-500 text-white py-1 px-3 rounded"
+                  >
+                    Check
+                  </button>
+                </>
+              ) : (
+                <span className="text-gray-500">Completed</span>
+              )}
             </li>
           ))}
         </ul>
       </div>
-
-      {/* نظام الإحالة */}
-      <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
     </main>
   );
-            }
+}
+
+// دالة لفتح قاعدة البيانات
+async function openDatabase() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open('AppDatabase', 1);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('users')) {
+        db.createObjectStore('users', { keyPath: 'username' });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+      }
