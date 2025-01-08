@@ -15,24 +15,35 @@ interface UserData {
   is_premium?: boolean;
 }
 
-useEffect(() => {
-  const initWebApp = async () => {
-    if (typeof window !== 'undefined') {
-      const WebApp = (await import('@twa-dev/sdk')).default;
-      WebApp.ready();
-      const user = WebApp.initDataUnsafe.user;
+export default function Home() {
+  const [initData, setInitData] = useState<string>('');
+  const [userId, setUserId] = useState<string>('');
+  const [startParam, setStartParam] = useState<string>('');
+  const [username, setUsername] = useState<string | undefined>(undefined);
 
-      console.log(user?.username); // تحقق من قيمة اسم المستخدم
-      setInitData(WebApp.initData);
-      setUserId(user?.id.toString() || '');
-      setStartParam(WebApp.initDataUnsafe.start_param || '');
-      setUsername(user?.username);
-    }
-  };
+  useEffect(() => {
+    const initWebApp = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const WebApp = (await import('@twa-dev/sdk')).default;
+          console.log('Initializing WebApp...');
+          WebApp.ready(); // تأكد من أن WebApp جاهز
 
-  initWebApp();
-}, []);
-
+          if (WebApp.initDataUnsafe?.user) {
+            const user = WebApp.initDataUnsafe.user;
+            console.log('User data:', user); // تحقق من بيانات المستخدم
+            setInitData(WebApp.initData);
+            setUserId(user.id.toString() || '');
+            setStartParam(WebApp.initDataUnsafe.start_param || '');
+            setUsername(user.username);
+          } else {
+            console.error('User data is not available in initDataUnsafe');
+          }
+        } catch (error) {
+          console.error('Error initializing WebApp:', error);
+        }
+      }
+    };
 
     initWebApp();
   }, []);
