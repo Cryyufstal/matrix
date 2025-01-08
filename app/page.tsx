@@ -45,32 +45,43 @@ export default function Home() {
     await updatePointsInDB(username, points + 100);
   };
 
-  const updatePointsInDB = async (username: string, newPoints: number) => {
+const updatePointsInDB = async (username: string, newPoints: number) => {
   const db = await openDatabase();
   const tx = db.transaction("users", "readwrite");
   const store = tx.objectStore("users");
 
-  // الحصول على المستخدم
-  const request = store.get(username);
-  request.onsuccess = () => {
-    const user = request.result;
+  return new Promise<void>((resolve, reject) => {
+    const request = store.get(username);
 
-    if (user) {
-      // تحديث النقاط للمستخدم الحالي
-      user.points = newPoints;
-      store.put(user);
-    } else {
-      // إضافة مستخدم جديد إذا لم يكن موجودًا
-      store.add({ username, points: newPoints });
-    }
-  };
+    request.onsuccess = () => {
+      const user = request.result;
 
-  request.onerror = () => {
-    console.error("Error accessing user data in IndexedDB");
-  };
+      if (user) {
+        // تحديث النقاط للمستخدم الحالي
+        user.points = newPoints;
+        store.put(user);
+      } else {
+        // إضافة مستخدم جديد إذا لم يكن موجودًا
+        store.add({ username, points: newPoints });
+      }
+    };
 
-  await tx.done;
-  db.close();
+    request.onerror = () => {
+      console.error("Error accessing user data in IndexedDB");
+      reject(request.error);
+    };
+
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+
+    tx.onerror = () => {
+      console.error("Transaction failed");
+      db.close();
+      reject(tx.error);
+    };
+  });
 };
 
   const openDatabase = async () => {
