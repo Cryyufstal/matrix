@@ -99,7 +99,7 @@ export default function Home() {
   };
 
   return (
-            <main className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-6">
+            <main className="flex flex-col items-center justify-start min-h-screen bg-black p-6">
   <h1 className="text-4xl font-extrabold text-blue-600 mb-6">NAIMO</h1>
   {username && <p className="text-lg text-gray-700 mb-4">Hello, @{username}!</p>}
       <Image
