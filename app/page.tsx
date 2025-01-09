@@ -7,12 +7,13 @@ interface Task {
   id: number;
   name: string;
   url: string;
+  started: boolean;
   completed: boolean;
 }
 
 const tasksData: Task[] = [
-  { id: 1, name: 'Visit Example Site', url: 'https://example.com', completed: false },
-  { id: 2, name: 'Check Another Site', url: 'https://example.org', completed: false },
+  { id: 1, name: 'Visit Example Site', url: 'https://example.com', started: false, completed: false },
+  { id: 2, name: 'Check Another Site', url: 'https://example.org', started: false, completed: false },
 ];
 
 export default function Home() {
@@ -20,7 +21,7 @@ export default function Home() {
   const [userId, setUserId] = useState('');
   const [username, setUsername] = useState('');
   const [startParam, setStartParam] = useState('');
-  const [tasks, setTasks] = useState<Task[]>(tasksData);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [points, setPoints] = useState<number>(0);
 
   // استرداد بيانات Telegram Web App
@@ -39,9 +40,9 @@ export default function Home() {
     initWebApp();
   }, []);
 
-  // استرداد النقاط من قاعدة البيانات عند بدء التطبيق
+  // استرداد المهام والنقاط عند بدء التطبيق
   useEffect(() => {
-    const fetchPoints = async () => {
+    const fetchUserData = async () => {
       const db = await openDatabase();
       const tx = db.transaction('users', 'readonly');
       const store = tx.objectStore('users');
@@ -50,16 +51,19 @@ export default function Home() {
       request.onsuccess = () => {
         const user = request.result;
         if (user) {
+          setTasks(user.tasks || tasksData);
           setPoints(user.points || 0);
+        } else {
+          setTasks(tasksData); // المهام الافتراضية
         }
       };
     };
 
-    if (username) fetchPoints();
+    if (username) fetchUserData();
   }, [username]);
 
-  // تحديث النقاط في قاعدة البيانات
-  const updatePointsInDB = async (newPoints: number) => {
+  // تحديث بيانات المستخدم في قاعدة البيانات
+  const updateUserDataInDB = async (newTasks: Task[], newPoints: number) => {
     const db = await openDatabase();
     const tx = db.transaction('users', 'readwrite');
     const store = tx.objectStore('users');
@@ -70,10 +74,11 @@ export default function Home() {
       const user = request.result;
 
       if (user) {
+        user.tasks = newTasks;
         user.points = newPoints;
         store.put(user);
       } else {
-        store.add({ username, points: newPoints });
+        store.add({ username, tasks: newTasks, points: newPoints });
       }
     };
   };
@@ -81,21 +86,20 @@ export default function Home() {
   // التعامل مع الضغط على زر Start
   const handleStart = (taskId: number) => {
     const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, completed: false } : task
+      task.id === taskId ? { ...task, started: true } : task
     );
     setTasks(updatedTasks);
+    updateUserDataInDB(updatedTasks, points);
   };
 
   // التعامل مع الضغط على زر Check
   const handleCheck = async (taskId: number) => {
-    const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, completed: true } : task
-    );
-    setTasks(updatedTasks);
-
+    const updatedTasks = tasks.filter((task) => task.id !== taskId);
     const newPoints = points + 100;
+
+    setTasks(updatedTasks);
     setPoints(newPoints);
-    await updatePointsInDB(newPoints);
+    await updateUserDataInDB(updatedTasks, newPoints);
   };
 
   return (
@@ -114,23 +118,23 @@ export default function Home() {
           {tasks.map((task) => (
             <li key={task.id} className="flex items-center justify-between p-4 bg-gray-100 rounded">
               <span>{task.name}</span>
-              {!task.completed ? (
-                <>
-                  <button
-                    onClick={() => window.open(task.url, '_blank')}
-                    className="bg-blue-500 text-white py-1 px-3 rounded"
-                  >
-                    Start
-                  </button>
-                  <button
-                    onClick={() => handleCheck(task.id)}
-                    className="bg-green-500 text-white py-1 px-3 rounded"
-                  >
-                    Check
-                  </button>
-                </>
+              {!task.started ? (
+                <button
+                  onClick={() => {
+                    window.open(task.url, '_blank');
+                    handleStart(task.id);
+                  }}
+                  className="bg-blue-500 text-white py-1 px-3 rounded"
+                >
+                  Start
+                </button>
               ) : (
-                <span className="text-gray-500">Completed</span>
+                <button
+                  onClick={() => handleCheck(task.id)}
+                  className="bg-green-500 text-white py-1 px-3 rounded"
+                >
+                  Check
+                </button>
               )}
             </li>
           ))}
@@ -155,4 +159,4 @@ async function openDatabase() {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-      }
+                      }
