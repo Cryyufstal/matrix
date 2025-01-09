@@ -11,7 +11,7 @@ interface ReferralSystemProps {
 const ReferralSystem: React.FC<ReferralSystemProps> = ({ initData, userId, startParam, username }) => {
   const [referrals, setReferrals] = useState<string[]>([]);
   const [referrer, setReferrer] = useState<string | null>(null);
-  const INVITE_URL = 'https://t.me/referral_showcase_bot/start';
+  const INVITE_URL = 'https://t.me/newtestine_bot/reffer/start';
 
   useEffect(() => {
     const checkReferral = async () => {
