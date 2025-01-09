@@ -1,6 +1,6 @@
 'use client';
 
-import ReferralSystem from '@/components/ReferralSystem';
+import ReferralSystem from '@/app/components/ReferralSystem';
 import { useSearchParams } from 'next/navigation';
 
 export default function InviteFriends() {
