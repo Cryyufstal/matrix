@@ -191,7 +191,6 @@ export default function Home() {
 </main>
   );
 }
-
 async function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open('AppDatabase', 1);
