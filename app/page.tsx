@@ -2,7 +2,7 @@
 
 import ReferralSystem from '@/components/ReferralSystem';
 import { useState, useEffect } from 'react';
-
+import Image from 'next/image';
 interface Task {
   id: number;
   name: string;
@@ -100,9 +100,14 @@ export default function Home() {
 
   return (
             <main className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-6">
-  <h1 className="text-4xl font-extrabold text-blue-600 mb-6">Welcome to the App</h1>
+  <h1 className="text-4xl font-extrabold text-blue-600 mb-6">NAIMO</h1>
   {username && <p className="text-lg text-gray-700 mb-4">Hello, @{username}!</p>}
-
+      <Image
+        src="/images/ninja.jpg" // المسار النسبي داخل مجلد public
+        alt="Example Image"
+        width={500} // تحديد العرض
+        height={300} // تحديد الارتفاع
+      />
   {/* Navigation Tabs */}
   <div className="flex justify-center space-x-4 mb-6">
     <button
@@ -191,6 +196,7 @@ export default function Home() {
 </main>
   );
 }
+
 async function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open('AppDatabase', 1);
