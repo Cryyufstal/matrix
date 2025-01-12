@@ -23,8 +23,8 @@ export default function Home() {
   const [startParam, setStartParam] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [points, setPoints] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'referral' | 'wallet'>('tasks'); // التحكم بالعرض
 
-  // استرداد بيانات Telegram Web App
   useEffect(() => {
     const initWebApp = async () => {
       if (typeof window !== 'undefined') {
@@ -40,7 +40,6 @@ export default function Home() {
     initWebApp();
   }, []);
 
-  // استرداد المهام والنقاط عند بدء التطبيق
   useEffect(() => {
     const fetchUserData = async () => {
       const db = await openDatabase();
@@ -54,7 +53,7 @@ export default function Home() {
           setTasks(user.tasks || tasksData);
           setPoints(user.points || 0);
         } else {
-          setTasks(tasksData); // المهام الافتراضية
+          setTasks(tasksData);
         }
       };
     };
@@ -62,7 +61,6 @@ export default function Home() {
     if (username) fetchUserData();
   }, [username]);
 
-  // تحديث بيانات المستخدم في قاعدة البيانات
   const updateUserDataInDB = async (newTasks: Task[], newPoints: number) => {
     const db = await openDatabase();
     const tx = db.transaction('users', 'readwrite');
@@ -83,7 +81,6 @@ export default function Home() {
     };
   };
 
-  // التعامل مع الضغط على زر Start
   const handleStart = (taskId: number) => {
     const updatedTasks = tasks.map((task) =>
       task.id === taskId ? { ...task, started: true } : task
@@ -92,7 +89,6 @@ export default function Home() {
     updateUserDataInDB(updatedTasks, points);
   };
 
-  // التعامل مع الضغط على زر Check
   const handleCheck = async (taskId: number) => {
     const updatedTasks = tasks.filter((task) => task.id !== taskId);
     const newPoints = points + 100;
@@ -103,48 +99,99 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center p-6">
-      <h1 className="text-4xl font-bold mb-6">Welcome to the App</h1>
-      {username && <p className="text-lg mb-4">Hello, @{username}!</p>}
+            <main className="flex flex-col items-center justify-start min-h-screen bg-gray-50 p-6">
+  <h1 className="text-4xl font-extrabold text-blue-600 mb-6">Welcome to the App</h1>
+  {username && <p className="text-lg text-gray-700 mb-4">Hello, @{username}!</p>}
 
-      {/* عرض نظام الإحالة */}
+  {/* Navigation Tabs */}
+  <div className="flex justify-center space-x-4 mb-6">
+    <button
+      onClick={() => setActiveTab('tasks')}
+      className={`py-2 px-4 rounded-lg font-medium ${
+        activeTab === 'tasks'
+          ? 'bg-blue-500 text-white shadow-md'
+          : 'bg-gray-200 text-gray-700'
+      }`}
+    >
+      Tasks
+    </button>
+    <button
+      onClick={() => setActiveTab('referral')}
+      className={`py-2 px-4 rounded-lg font-medium ${
+        activeTab === 'referral'
+          ? 'bg-blue-500 text-white shadow-md'
+          : 'bg-gray-200 text-gray-700'
+      }`}
+    >
+      Invite Friends
+    </button>
+    <button
+      onClick={() => setActiveTab('wallet')}
+      className={`py-2 px-4 rounded-lg font-medium ${
+        activeTab === 'wallet'
+          ? 'bg-blue-500 text-white shadow-md'
+          : 'bg-gray-200 text-gray-700'
+      }`}
+    >
+      Wallet
+    </button>
+  </div>
+
+  {/* Conditional Rendering */}
+  {activeTab === 'tasks' && (
+    <div className="mt-8 w-full max-w-md">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Tasks</h2>
+      <h3 className="text-lg font-semibold text-blue-600 mb-4">
+        Your Points: <span className="font-bold">{points}</span>
+      </h3>
+      <ul className="space-y-4">
+        {tasks.map((task) => (
+          <li
+            key={task.id}
+            className="flex items-center justify-between p-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200"
+          >
+            <span className="font-medium text-gray-800">{task.name}</span>
+            {!task.started ? (
+              <button
+                onClick={() => {
+                  window.open(task.url, '_blank');
+                  handleStart(task.id);
+                }}
+                className="bg-blue-500 text-white py-1 px-3 rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Start
+              </button>
+            ) : (
+              <button
+                onClick={() => handleCheck(task.id)}
+                className="bg-green-500 text-white py-1 px-3 rounded-lg hover:bg-green-600 transition-colors"
+              >
+                Check
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+
+  {activeTab === 'referral' && (
+    <div className="mt-8 w-full max-w-md">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Invite Friends</h2>
       <ReferralSystem initData={initData} userId={userId} startParam={startParam} />
+    </div>
+  )}
 
-      {/* عرض قائمة المهام */}
-      <div className="mt-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-4">Your Tasks</h2>
-        <h3 className="text-lg mb-4">Your Points: {points}</h3>
-        <ul className="space-y-4">
-          {tasks.map((task) => (
-            <li key={task.id} className="flex items-center justify-between p-4 bg-gray-100 rounded">
-              <span>{task.name}</span>
-              {!task.started ? (
-                <button
-                  onClick={() => {
-                    window.open(task.url, '_blank');
-                    handleStart(task.id);
-                  }}
-                  className="bg-blue-500 text-white py-1 px-3 rounded"
-                >
-                  Start
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleCheck(task.id)}
-                  className="bg-green-500 text-white py-1 px-3 rounded"
-                >
-                  Check
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </main>
+  {activeTab === 'wallet' && (
+    <div className="mt-8 w-full max-w-md text-center">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Wallet</h2>
+      <p className="text-gray-500">Coming Soon</p>
+    </div>
+  )}
+</main>
   );
 }
 
-// دالة لفتح قاعدة البيانات
 async function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open('AppDatabase', 1);
@@ -159,4 +206,4 @@ async function openDatabase() {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
-                      }
+         }
